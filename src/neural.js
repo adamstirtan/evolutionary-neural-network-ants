@@ -114,4 +114,80 @@ class NeuralNetwork {
     getWeights() {
         return [...this.weights];
     }
+    
+    /**
+     * Backpropagation - update weights based on target outputs
+     * This is a simplified version for reinforcement learning
+     * @param {Array} inputs - Input values
+     * @param {Array} targetOutputs - Target output values
+     * @param {Number} rewardSignal - Reward signal (1 for good, -1 for bad)
+     * @param {Number} learningRate - Learning rate
+     */
+    backpropagate(inputs, targetOutputs, rewardSignal, learningRate) {
+        // Forward pass to get activations
+        const hidden = [];
+        for (let i = 0; i < this.hiddenSize; i++) {
+            let sum = 0;
+            for (let j = 0; j < this.inputSize; j++) {
+                const weightIndex = i * this.inputSize + j;
+                sum += inputs[j] * this.weights[weightIndex];
+            }
+            hidden.push(this.activate(sum));
+        }
+        
+        const outputs = [];
+        const hiddenToOutputOffset = this.inputSize * this.hiddenSize;
+        for (let i = 0; i < this.outputSize; i++) {
+            let sum = 0;
+            for (let j = 0; j < this.hiddenSize; j++) {
+                const weightIndex = hiddenToOutputOffset + i * this.hiddenSize + j;
+                sum += hidden[j] * this.weights[weightIndex];
+            }
+            outputs.push(this.activate(sum));
+        }
+        
+        // Backward pass - compute gradients
+        // Output layer deltas (using reward-weighted error)
+        const outputDeltas = [];
+        for (let i = 0; i < this.outputSize; i++) {
+            const error = (targetOutputs[i] - outputs[i]) * rewardSignal;
+            // Derivative of tanh: 1 - tanh(x)^2
+            const delta = error * (1 - outputs[i] * outputs[i]);
+            outputDeltas.push(delta);
+        }
+        
+        // Hidden layer deltas
+        const hiddenDeltas = [];
+        for (let i = 0; i < this.hiddenSize; i++) {
+            let error = 0;
+            for (let j = 0; j < this.outputSize; j++) {
+                const weightIndex = hiddenToOutputOffset + j * this.hiddenSize + i;
+                error += outputDeltas[j] * this.weights[weightIndex];
+            }
+            const delta = error * (1 - hidden[i] * hidden[i]);
+            hiddenDeltas.push(delta);
+        }
+        
+        // Update weights from hidden to output
+        for (let i = 0; i < this.outputSize; i++) {
+            for (let j = 0; j < this.hiddenSize; j++) {
+                const weightIndex = hiddenToOutputOffset + i * this.hiddenSize + j;
+                const gradient = outputDeltas[i] * hidden[j];
+                this.weights[weightIndex] += learningRate * gradient;
+                // Clamp weights
+                this.weights[weightIndex] = constrain(this.weights[weightIndex], -2, 2);
+            }
+        }
+        
+        // Update weights from input to hidden
+        for (let i = 0; i < this.hiddenSize; i++) {
+            for (let j = 0; j < this.inputSize; j++) {
+                const weightIndex = i * this.inputSize + j;
+                const gradient = hiddenDeltas[i] * inputs[j];
+                this.weights[weightIndex] += learningRate * gradient;
+                // Clamp weights
+                this.weights[weightIndex] = constrain(this.weights[weightIndex], -2, 2);
+            }
+        }
+    }
 }

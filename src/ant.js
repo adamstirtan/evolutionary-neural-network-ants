@@ -6,7 +6,7 @@ class Ant {
   constructor(x, y, team, brain = null) {
     this.x = x;
     this.y = y;
-    this.team = team; // 'ga' or 'pso'
+    this.team = team; // 'ga', 'pso', or 'bp'
     this.brain = brain || new NeuralNetwork();
 
     // Movement properties
@@ -17,7 +17,13 @@ class Ant {
 
     // Size and appearance
     this.size = 6;
-    this.color = team === "ga" ? color(255, 107, 107) : color(78, 205, 196);
+    if (team === "ga") {
+      this.color = color(255, 107, 107); // Red
+    } else if (team === "pso") {
+      this.color = color(78, 205, 196); // Cyan
+    } else if (team === "bp") {
+      this.color = color(255, 193, 7); // Yellow/Gold
+    }
 
     // Fitness tracking
     this.fitness = 0;
