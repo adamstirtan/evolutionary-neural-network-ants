@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evolutionary Ants • GA vs PSO</title>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"
+      integrity="sha512-bcfltY+lNLlNxz38yBBm/HLaUB1gTV6I0e+fahbF9pS6roIdzUytozWdnFV8ZnM6cSAG5EbmO0ag0a/fLZSG4Q=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <style>
+      :root {
+        --bg: #0e1320;
+        --bg-2: #0b1020;
+        --panel: #121a2b;
+        --panel-2: #0f1730;
+        --border: #1f2a44;
+        --text: #e7edf6;
+        --muted: #a7b1c2;
+        --accent: #5cf2c7;
+        --accent-2: #57a6ff;
+        --danger: #ff6b6b;
+        --ok: #4ecdc4;
+        --bar-h: 56px;
+        --sidebar-w: 380px;
+        --radius: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+          Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        color: var(--text);
+        background: var(--bg);
+        overflow: hidden;
+      }
+
+      .app {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Top bar */
+      .topbar {
+        height: var(--bar-h);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        backdrop-filter: none;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      .brand .menu-btn {
+        display: none;
+      }
+      .brand-title {
+        font-size: 16px;
+        color: var(--text);
+      }
+      .brand-badge {
+        font-size: 12px;
+        color: var(--muted);
+        padding-left: 8px;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      /* Centered controls in top bar */
+      .top-controls {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        gap: 8px;
+      }
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        border-color: var(--accent);
+      }
+
+      /* Layout */
+      .app-body {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        padding: 16px;
+        overflow: auto;
+      }
+
+      .main {
+        flex: 1;
+        position: relative;
+        min-width: 0;
+        background: #000;
+        display: flex;
+      }
+
+      #canvas-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #canvas-container canvas {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        border-radius: 0;
+      }
+
+      /* Panels inside sidebar */
+      .panel {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+      }
+      .panel + .panel {
+        margin-top: 16px;
+      }
+      .panel h3 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: var(--muted);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .stat-box {
+        padding: 0;
+        border-radius: 0;
+        border: none;
+        background: transparent;
+      }
+      .stat-box h4 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .team-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .stat-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 4px 0;
+        color: var(--muted);
+      }
+      .stat-item span:last-child {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      /* Chart */
+      .chart-wrap {
+        width: 100%;
+        height: 200px;
+      }
+      #fitness-chart {
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      .control-group {
+        margin: 12px 0;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px 12px;
+        align-items: center;
+      }
+      .control-group label {
+        font-size: 12px;
+        color: var(--muted);
+        grid-column: 1 / span 2;
+      }
+      .control-group input[type="range"] {
+        width: 100%;
+      }
+      .control-group .value {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      .buttons {
+        display: flex;
+        gap: 8px;
+      }
+      button {
+        background: transparent;
+        border: 1px solid var(--accent);
+        color: var(--text);
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:hover {
+        filter: brightness(1.1);
+      }
+      #toggle-pause-btn {
+        border-color: var(--accent-2);
+        background: transparent;
+      }
+
+      /* Modal */
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 80;
+      }
+      .modal-backdrop.show {
+        display: block;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(760px, 92vw);
+        max-height: 80vh;
+        overflow: auto;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        z-index: 90;
+      }
+      .modal.show {
+        display: block;
+      }
+      .modal header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .modal header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: var(--text);
+      }
+      .modal .close-btn {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+      }
+      .modal section {
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .modal section h4 {
+        margin: 12px 0 6px;
+        font-size: 13px;
+        color: var(--text);
+      }
+
+      /* Drawer on mobile */
+      @media (max-width: 900px) {
+        .brand .menu-btn {
+          display: inline-flex;
+        }
+        .app-body {
+          position: relative;
+        }
+        .sidebar {
+          position: fixed;
+          top: var(--bar-h);
+          left: 0;
+          height: calc(100vh - var(--bar-h));
+          width: min(86vw, 380px);
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+          z-index: 60;
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .drawer-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          top: var(--bar-h);
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 55;
+        }
+        .drawer-backdrop.show {
+          display: block;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <button
+            id="menu-toggle"
+            class="icon-btn menu-btn"
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+          <div class="brand-title">
+            Evolutionary Ants <span class="brand-badge">GA vs PSO</span>
+          </div>
+        </div>
+        <div class="top-controls">
+          <button id="reset-btn">Reset</button>
+          <button id="toggle-pause-btn">Pause</button>
+        </div>
+        <div class="actions">
+          <button class="icon-btn" id="info-btn" aria-label="How it works">
+            i
+          </button>
+          <a
+            class="icon-btn"
+            href="https://github.com/adamstirtan/evolutionary-neural-network-ants"
+            target="_blank"
+            rel="noopener"
+            aria-label="Open GitHub"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 .5C5.73.5.98 5.24.98 11.5c0 4.85 3.15 8.96 7.51 10.41.55.11.75-.24.75-.53 0-.26-.01-1.11-.02-2.01-3.05.66-3.69-1.29-3.69-1.29-.5-1.27-1.22-1.61-1.22-1.61-.99-.68.08-.67.08-.67 1.1.08 1.68 1.13 1.68 1.13.98 1.68 2.58 1.19 3.21.91.1-.71.38-1.19.69-1.46-2.44-.28-5-1.22-5-5.44 0-1.2.43-2.19 1.12-2.97-.11-.28-.48-1.41.11-2.94 0 0 .92-.3 3.02 1.13.88-.25 1.82-.37 2.76-.38.94 0 1.88.13 2.76.38 2.1-1.43 3.02-1.13 3.02-1.13.59 1.53.22 2.66.11 2.94.7.78 1.12 1.77 1.12 2.97 0 4.23-2.56 5.15-5 5.43.39.33.74.98.74 1.98 0 1.43-.01 2.58-.01 2.94 0 .29.2.64.76.53A10.52 10.52 0 0 0 23.02 11.5C23.02 5.24 18.27.5 12 .5Z"
+              />
+            </svg>
+          </a>
+        </div>
+      </header>
+
+      <div class="app-body">
+        <aside id="sidebar" class="sidebar">
+          <div class="panel">
+            <div class="stats">
+              <div class="stat-box">
+                <h4>
+                  <span
+                    class="team-dot"
+                    style="background: var(--danger)"
+                  ></span>
+                  GA
+                </h4>
+                <div class="stat-item">
+                  <span>Generation</span><span id="ga-generation">0</span>
+                </div>
+                <div class="stat-item">
+                  <span>Best Fitness</span><span id="ga-best">0</span>
+                </div>
+                <div class="stat-item">
+                  <span>Avg Fitness</span><span id="ga-avg">0</span>
+                </div>
+              </div>
+              <div class="stat-box">
+                <h4>
+                  <span class="team-dot" style="background: var(--ok)"></span>
+                  PSO
+                </h4>
+                <div class="stat-item">
+                  <span>Generation</span><span id="pso-generation">0</span>
+                </div>
+                <div class="stat-item">
+                  <span>Best Fitness</span><span id="pso-best">0</span>
+                </div>
+                <div class="stat-item">
+                  <span>Avg Fitness</span><span id="pso-avg">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Progress</h3>
+            <div class="chart-wrap"><canvas id="fitness-chart"></canvas></div>
+          </div>
+
+          <div class="panel">
+            <h3>Genetic Algorithm</h3>
+            <div class="control-group">
+              <label for="mutation-rate">Mutation Rate</label>
+              <input
+                type="range"
+                id="mutation-rate"
+                min="0.01"
+                max="0.5"
+                step="0.01"
+                value="0.1"
+              />
+              <div class="value" id="mutation-rate-value">0.1</div>
+            </div>
+            <div class="control-group">
+              <label for="crossover-rate">Crossover Rate</label>
+              <input
+                type="range"
+                id="crossover-rate"
+                min="0.5"
+                max="1.0"
+                step="0.05"
+                value="0.8"
+              />
+              <div class="value" id="crossover-rate-value">0.8</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Particle Swarm Optimization</h3>
+            <div class="control-group">
+              <label for="inertia-weight">Inertia Weight</label>
+              <input
+                type="range"
+                id="inertia-weight"
+                min="0.4"
+                max="0.9"
+                step="0.05"
+                value="0.7"
+              />
+              <div class="value" id="inertia-weight-value">0.7</div>
+            </div>
+            <div class="control-group">
+              <label for="cognitive-weight">Cognitive Weight</label>
+              <input
+                type="range"
+                id="cognitive-weight"
+                min="0.5"
+                max="2.5"
+                step="0.1"
+                value="1.5"
+              />
+              <div class="value" id="cognitive-weight-value">1.5</div>
+            </div>
+            <div class="control-group">
+              <label for="social-weight">Social Weight</label>
+              <input
+                type="range"
+                id="social-weight"
+                min="0.5"
+                max="2.5"
+                step="0.1"
+                value="1.5"
+              />
+              <div class="value" id="social-weight-value">1.5</div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="main">
+          <div id="canvas-container"></div>
+        </div>
+        <div id="backdrop" class="drawer-backdrop"></div>
+      </div>
+      <!-- Info modal -->
+      <div id="info-backdrop" class="modal-backdrop"></div>
+      <div
+        id="info-modal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <header>
+          <h3 id="modal-title">How the Simulation Works</h3>
+          <button class="close-btn" id="info-close" aria-label="Close">
+            ✕
+          </button>
+        </header>
+        <section>
+          <h4>Overview</h4>
+          <p>
+            Two colonies of ants learn to forage using evolutionary
+            optimization. Each ant is controlled by a tiny neural network (no
+            backpropagation); we optimize its weights using either a Genetic
+            Algorithm (GA) or Particle Swarm Optimization (PSO).
+          </p>
+          <h4>Neural "Brain"</h4>
+          <ul>
+            <li>
+              Inputs (5): food angle (relative), normalized distance, velocity
+              X, velocity Y, bias (1.0)
+            </li>
+            <li>Hidden layer: 4 neurons (tanh)</li>
+            <li>Outputs (2): turn angle (−π/4…π/4), speed (0…max)</li>
+          </ul>
+          <h4>Episode and Fitness</h4>
+          <ul>
+            <li>One generation = 300 frames. All ants act simultaneously.</li>
+            <li>
+              Fitness increases by +10 whenever an ant collects a food item.
+            </li>
+            <li>
+              At generation end, GA/PSO produce the next set of brains; ants
+              respawn.
+            </li>
+          </ul>
+          <h4>Genetic Algorithm (GA)</h4>
+          <ul>
+            <li>Selection: Tournament of random candidates; pick the best.</li>
+            <li>Crossover: Single-point on flattened weight vectors.</li>
+            <li>
+              Mutation: Adds Gaussian noise; elite (best) always survives.
+            </li>
+          </ul>
+          <h4>Particle Swarm Optimization (PSO)</h4>
+          <ul>
+            <li>Each ant = particle with position (weights) and velocity.</li>
+            <li>
+              Updates use inertia + pull toward personal and global best
+              weights.
+            </li>
+            <li>
+              Velocities and weights are clamped to keep the search stable.
+            </li>
+          </ul>
+          <h4>Tips</h4>
+          <ul>
+            <li>
+              Increase inertia to explore; increase cognitive/social to exploit.
+            </li>
+            <li>
+              Mutation rate affects GA diversity; too high can cause churn.
+            </li>
+            <li>
+              Click the canvas to add food and make learning signals denser.
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      // Mobile drawer toggle
+      (function () {
+        const sidebar = document.getElementById("sidebar");
+        const openBtn = document.getElementById("menu-toggle");
+        const backdrop = document.getElementById("backdrop");
+        const mq = window.matchMedia("(max-width: 900px)");
+        function closeDrawer() {
+          sidebar.classList.remove("open");
+          backdrop.classList.remove("show");
+        }
+        function openDrawer() {
+          sidebar.classList.add("open");
+          backdrop.classList.add("show");
+        }
+        openBtn &&
+          openBtn.addEventListener("click", () => {
+            if (sidebar.classList.contains("open")) closeDrawer();
+            else openDrawer();
+          });
+        backdrop && backdrop.addEventListener("click", closeDrawer);
+        window.addEventListener("resize", () => {
+          if (!mq.matches) {
+            closeDrawer();
+          }
+        });
+      })();
+
+      // Initialize displayed slider values to match defaults (before p5 binds events)
+      (function () {
+        const ids = [
+          ["mutation-rate", "mutation-rate-value"],
+          ["crossover-rate", "crossover-rate-value"],
+          ["inertia-weight", "inertia-weight-value"],
+          ["cognitive-weight", "cognitive-weight-value"],
+          ["social-weight", "social-weight-value"],
+        ];
+        ids.forEach(([i, v]) => {
+          const input = document.getElementById(i);
+          const val = document.getElementById(v);
+          if (input && val) val.textContent = input.value;
+        });
+      })();
+
+      // Info modal behavior
+      (function () {
+        const openBtn = document.getElementById("info-btn");
+        const closeBtn = document.getElementById("info-close");
+        const modal = document.getElementById("info-modal");
+        const backdrop = document.getElementById("info-backdrop");
+        function open() {
+          modal.classList.add("show");
+          backdrop.classList.add("show");
+        }
+        function close() {
+          modal.classList.remove("show");
+          backdrop.classList.remove("show");
+        }
+        openBtn && openBtn.addEventListener("click", open);
+        closeBtn && closeBtn.addEventListener("click", close);
+        backdrop && backdrop.addEventListener("click", close);
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") close();
+        });
+      })();
+    </script>
+
+    <!-- Chart.js for progress chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="src/neural.js"></script>
+    <script src="src/ga.js"></script>
+    <script src="src/pso.js"></script>
+    <script src="src/ant.js"></script>
+    <script src="src/main.js"></script>
+  </body>
+</html>
