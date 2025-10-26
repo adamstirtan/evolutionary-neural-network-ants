@@ -9,6 +9,7 @@ let CANVAS_HEIGHT = 800;
 let populationSize = 30; // Per team (shared across GA/PSO/BP)
 let generationTime = 600; // Frames (10 seconds at 60fps)
 let foodPieces = 50; // Fixed target set by user; replenished only at generation end
+const MIN_FOOD = 10; // Do not allow target food below this value
 
 // Global variables
 let gaAnts = [];
@@ -31,6 +32,8 @@ let populationSizeSlider;
 let foodCountSlider;
 let fitnessChart;
 let fitnessChartAvg;
+let foodDecayCheckbox;
+let freePlayCheckbox;
 
 /**
  * p5.js setup function - runs once at start
@@ -38,6 +41,7 @@ let fitnessChartAvg;
 function setup() {
   // Determine available canvas size from container
   const container = document.getElementById("canvas-container");
+  let freePlayCheckbox;
   if (container) {
     const rect = container.getBoundingClientRect();
     CANVAS_WIDTH = Math.max(300, Math.floor(rect.width));
@@ -212,11 +216,17 @@ function setupUIControls() {
   if (foodCountSlider) {
     foodCountSlider.input(() => {
       const val = parseInt(foodCountSlider.value());
-      foodPieces = isNaN(val) ? foodPieces : val;
+      foodPieces = isNaN(val) ? foodPieces : Math.max(MIN_FOOD, val);
       select("#food-count-value").html(String(foodPieces));
       // Do not add or remove food immediately; only replenish at generation end
     });
   }
+
+  // Food decay per generation (optional)
+  foodDecayCheckbox = select("#food-decay");
+
+  // Free play (pause generation timer)
+  freePlayCheckbox = select("#free-play");
 
   // Reset button with confirmation; pause first, then defer confirm so label updates first
   select("#reset-btn").mousePressed(() => {
@@ -306,25 +316,62 @@ function draw() {
       bpAlgorithm.storeExperience(i, inputs, outputs);
     }
 
-    // Increment frame counter
-    frameCounter++;
+    const freePlay = freePlayCheckbox && freePlayCheckbox.elt.checked;
+    if (!freePlay) {
+      // Increment frame counter
+      frameCounter++;
 
-    // Check if it's time for a new generation
-    if (frameCounter >= generationTime) {
-      evolvePopulations();
-      frameCounter = 0;
+      // Early end if all food has been collected
+      if (foods.length === 0) {
+        evolvePopulations();
+        frameCounter = 0;
 
-      // Replenish food only at generation end up to the target count
-      const toSpawn = Math.max(0, foodPieces - foods.length);
-      if (toSpawn > 0) spawnFood(toSpawn);
+        const freePlay = freePlayCheckbox && freePlayCheckbox.elt.checked;
+        if (!freePlay) {
+          // Optionally reduce target food by 1 each generation
+          if (foodDecayCheckbox && foodDecayCheckbox.elt.checked) {
+            foodPieces = Math.max(MIN_FOOD, foodPieces - 1);
+            // Reflect change in UI slider and value
+            const slider = document.getElementById("food-count");
+            const valEl = document.getElementById("food-count-value");
+            if (slider) slider.value = String(foodPieces);
+            if (valEl) valEl.textContent = String(foodPieces);
+          }
+
+          // Replenish food only at generation end up to the target count
+          const toSpawn = Math.max(0, foodPieces - foods.length);
+          if (toSpawn > 0) spawnFood(toSpawn);
+          // Avoid running the time-based check in the same frame
+          return;
+        }
+
+        // Check if it's time for a new generation (time-based)
+        if (frameCounter >= generationTime) {
+          evolvePopulations();
+          frameCounter = 0;
+
+          // Optionally reduce target food by 1 each generation
+          if (foodDecayCheckbox && foodDecayCheckbox.elt.checked) {
+            foodPieces = Math.max(MIN_FOOD, foodPieces - 1);
+            // Reflect change in UI slider and value
+            const slider = document.getElementById("food-count");
+            const valEl = document.getElementById("food-count-value");
+            if (slider) slider.value = String(foodPieces);
+            if (valEl) valEl.textContent = String(foodPieces);
+          }
+
+          // Replenish food only at generation end up to the target count
+          const toSpawn = Math.max(0, foodPieces - foods.length);
+          if (toSpawn > 0) spawnFood(toSpawn);
+        }
+      }
+    }
+
+    // Draw all food
+    for (let food of foods) {
+      food.draw();
     }
   }
-
-  // Draw all food
-  for (let food of foods) {
-    food.draw();
-  }
-
   // Draw all ants
   for (let ant of gaAnts) {
     ant.draw();

@@ -12,7 +12,7 @@ class Ant {
     // Movement properties
     this.velocity = createVector(0, 0);
     this.angle = Math.random() * Math.PI * 2;
-    this.maxSpeed = 2;
+    this.maxSpeed = 5;
     this.maxForce = 0.1;
 
     // Size and appearance
@@ -135,8 +135,8 @@ class Ant {
       const d = dist(this.x, this.y, food.x, food.y);
 
       if (d < this.size + food.size) {
-        // Collect food
-        this.fitness += 10;
+        // Collect food: 1 point per food
+        this.fitness += 1;
         this.foodCollected++;
         foods.splice(i, 1);
       }

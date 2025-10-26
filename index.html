@@ -115,6 +115,21 @@
       .icon-btn:hover {
         border-color: var(--accent);
       }
+      .toggle-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--muted);
+        cursor: pointer;
+        user-select: none;
+      }
+      .toggle-label input {
+        accent-color: var(--accent-2);
+      }
 
       /* Layout */
       .app-body {
@@ -380,6 +395,13 @@
         <div class="top-controls">
           <button id="reset-btn">Reset</button>
           <button id="toggle-pause-btn">Start</button>
+          <label
+            for="free-play"
+            class="toggle-label"
+            title="Pause generation timer; let ants keep moving"
+          >
+            <input type="checkbox" id="free-play" /> Feeding Mode
+          </label>
         </div>
         <div class="actions">
           <button class="icon-btn" id="info-btn" aria-label="How it works">
@@ -488,12 +510,17 @@
               <input
                 type="range"
                 id="food-count"
-                min="0"
+                min="10"
                 max="200"
                 step="1"
                 value="50"
               />
               <div class="value" id="food-count-value">50</div>
+            </div>
+            <div class="control-group">
+              <label for="food-decay">Reduce food by 1 each generation</label>
+              <input type="checkbox" id="food-decay" />
+              <div></div>
             </div>
           </div>
 
@@ -638,7 +665,7 @@
               act simultaneously.
             </li>
             <li>
-              Fitness increases by +10 whenever an ant collects a food item.
+              Fitness increases by +1 whenever an ant collects a food item.
             </li>
             <li>
               At generation end, algorithms produce the next set of brains; ants
