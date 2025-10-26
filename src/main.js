@@ -326,44 +326,41 @@ function draw() {
         evolvePopulations();
         frameCounter = 0;
 
-        const freePlay = freePlayCheckbox && freePlayCheckbox.elt.checked;
-        if (!freePlay) {
-          // Optionally reduce target food by 1 each generation
-          if (foodDecayCheckbox && foodDecayCheckbox.elt.checked) {
-            foodPieces = Math.max(MIN_FOOD, foodPieces - 1);
-            // Reflect change in UI slider and value
-            const slider = document.getElementById("food-count");
-            const valEl = document.getElementById("food-count-value");
-            if (slider) slider.value = String(foodPieces);
-            if (valEl) valEl.textContent = String(foodPieces);
-          }
-
-          // Replenish food only at generation end up to the target count
-          const toSpawn = Math.max(0, foodPieces - foods.length);
-          if (toSpawn > 0) spawnFood(toSpawn);
-          // Avoid running the time-based check in the same frame
-          return;
+        // Optionally reduce target food by 1 each generation
+        if (foodDecayCheckbox && foodDecayCheckbox.elt.checked) {
+          foodPieces = Math.max(MIN_FOOD, foodPieces - 1);
+          // Reflect change in UI slider and value
+          const slider = document.getElementById("food-count");
+          const valEl = document.getElementById("food-count-value");
+          if (slider) slider.value = String(foodPieces);
+          if (valEl) valEl.textContent = String(foodPieces);
         }
 
-        // Check if it's time for a new generation (time-based)
-        if (frameCounter >= generationTime) {
-          evolvePopulations();
-          frameCounter = 0;
+        // Replenish food only at generation end up to the target count
+        const toSpawn = Math.max(0, foodPieces - foods.length);
+        if (toSpawn > 0) spawnFood(toSpawn);
+        // Avoid running the time-based check in the same frame
+        return;
+      }
 
-          // Optionally reduce target food by 1 each generation
-          if (foodDecayCheckbox && foodDecayCheckbox.elt.checked) {
-            foodPieces = Math.max(MIN_FOOD, foodPieces - 1);
-            // Reflect change in UI slider and value
-            const slider = document.getElementById("food-count");
-            const valEl = document.getElementById("food-count-value");
-            if (slider) slider.value = String(foodPieces);
-            if (valEl) valEl.textContent = String(foodPieces);
-          }
+      // Check if it's time for a new generation (time-based)
+      if (frameCounter >= generationTime) {
+        evolvePopulations();
+        frameCounter = 0;
 
-          // Replenish food only at generation end up to the target count
-          const toSpawn = Math.max(0, foodPieces - foods.length);
-          if (toSpawn > 0) spawnFood(toSpawn);
+        // Optionally reduce target food by 1 each generation
+        if (foodDecayCheckbox && foodDecayCheckbox.elt.checked) {
+          foodPieces = Math.max(MIN_FOOD, foodPieces - 1);
+          // Reflect change in UI slider and value
+          const slider = document.getElementById("food-count");
+          const valEl = document.getElementById("food-count-value");
+          if (slider) slider.value = String(foodPieces);
+          if (valEl) valEl.textContent = String(foodPieces);
         }
+
+        // Replenish food only at generation end up to the target count
+        const toSpawn = Math.max(0, foodPieces - foods.length);
+        if (toSpawn > 0) spawnFood(toSpawn);
       }
     }
 
