@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Evolutionary Ants • GA vs PSO</title>
+    <title>Evolutionary Ants • GA vs PSO vs BP</title>
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"
       integrity="sha512-bcfltY+lNLlNxz38yBBm/HLaUB1gTV6I0e+fahbF9pS6roIdzUytozWdnFV8ZnM6cSAG5EbmO0ag0a/fLZSG4Q=="
@@ -170,7 +170,7 @@
 
       .stats {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr;
         gap: 12px;
       }
       .stat-box {
@@ -365,7 +365,7 @@
             ☰
           </button>
           <div class="brand-title">
-            Evolutionary Ants <span class="brand-badge">GA vs PSO</span>
+            Evolutionary Ants <span class="brand-badge">GA vs PSO vs BP</span>
           </div>
         </div>
         <div class="top-controls">
@@ -412,9 +412,6 @@
                   GA
                 </h4>
                 <div class="stat-item">
-                  <span>Generation</span><span id="ga-generation">0</span>
-                </div>
-                <div class="stat-item">
                   <span>Best Fitness</span><span id="ga-best">0</span>
                 </div>
                 <div class="stat-item">
@@ -427,21 +424,65 @@
                   PSO
                 </h4>
                 <div class="stat-item">
-                  <span>Generation</span><span id="pso-generation">0</span>
-                </div>
-                <div class="stat-item">
                   <span>Best Fitness</span><span id="pso-best">0</span>
                 </div>
                 <div class="stat-item">
                   <span>Avg Fitness</span><span id="pso-avg">0</span>
                 </div>
               </div>
+              <div class="stat-box">
+                <h4>
+                  <span class="team-dot" style="background: #ffc107"></span>
+                  BP
+                </h4>
+                <div class="stat-item">
+                  <span>Best Fitness</span><span id="bp-best">0</span>
+                </div>
+                <div class="stat-item">
+                  <span>Avg Fitness</span><span id="bp-avg">0</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="panel">
-            <h3>Progress</h3>
             <div class="chart-wrap"><canvas id="fitness-chart"></canvas></div>
+            <div class="control-group">
+              <label for="generation-length">Generation Length (frames)</label>
+              <input
+                type="range"
+                id="generation-length"
+                min="60"
+                max="1200"
+                step="30"
+                value="600"
+              />
+              <div class="value" id="generation-length-value">600</div>
+            </div>
+            <div class="control-group">
+              <label for="population-size">Population Size (per team)</label>
+              <input
+                type="range"
+                id="population-size"
+                min="3"
+                max="60"
+                step="1"
+                value="30"
+              />
+              <div class="value" id="population-size-value">30</div>
+            </div>
+            <div class="control-group">
+              <label for="food-count">Food Pieces</label>
+              <input
+                type="range"
+                id="food-count"
+                min="0"
+                max="200"
+                step="1"
+                value="50"
+              />
+              <div class="value" id="food-count-value">50</div>
+            </div>
           </div>
 
           <div class="panel">
@@ -454,9 +495,9 @@
                 min="0.01"
                 max="0.5"
                 step="0.01"
-                value="0.1"
+                value="0.15"
               />
-              <div class="value" id="mutation-rate-value">0.1</div>
+              <div class="value" id="mutation-rate-value">0.15</div>
             </div>
             <div class="control-group">
               <label for="crossover-rate">Crossover Rate</label>
@@ -466,9 +507,21 @@
                 min="0.5"
                 max="1.0"
                 step="0.05"
-                value="0.8"
+                value="0.9"
               />
-              <div class="value" id="crossover-rate-value">0.8</div>
+              <div class="value" id="crossover-rate-value">0.9</div>
+            </div>
+            <div class="control-group">
+              <label for="elite-count">Elites (0–3)</label>
+              <input
+                type="range"
+                id="elite-count"
+                min="0"
+                max="3"
+                step="1"
+                value="2"
+              />
+              <div class="value" id="elite-count-value">2</div>
             </div>
           </div>
 
@@ -511,6 +564,22 @@
               <div class="value" id="social-weight-value">1.5</div>
             </div>
           </div>
+
+          <div class="panel">
+            <h3>Backpropagation</h3>
+            <div class="control-group">
+              <label for="learning-rate">Learning Rate</label>
+              <input
+                type="range"
+                id="learning-rate"
+                min="0.001"
+                max="0.1"
+                step="0.001"
+                value="0.01"
+              />
+              <div class="value" id="learning-rate-value">0.01</div>
+            </div>
+          </div>
         </aside>
 
         <div class="main">
@@ -536,10 +605,10 @@
         <section>
           <h4>Overview</h4>
           <p>
-            Two colonies of ants learn to forage using evolutionary
-            optimization. Each ant is controlled by a tiny neural network (no
-            backpropagation); we optimize its weights using either a Genetic
-            Algorithm (GA) or Particle Swarm Optimization (PSO).
+            Three colonies of ants learn to forage using different optimization
+            methods. Each ant is controlled by a tiny neural network. We compare
+            evolutionary approaches (GA and PSO) with traditional gradient-based
+            learning (Backpropagation).
           </p>
           <h4>Neural "Brain"</h4>
           <ul>
@@ -552,12 +621,15 @@
           </ul>
           <h4>Episode and Fitness</h4>
           <ul>
-            <li>One generation = 300 frames. All ants act simultaneously.</li>
+            <li>
+              One generation length is adjustable (default 600 frames). All ants
+              act simultaneously.
+            </li>
             <li>
               Fitness increases by +10 whenever an ant collects a food item.
             </li>
             <li>
-              At generation end, GA/PSO produce the next set of brains; ants
+              At generation end, algorithms produce the next set of brains; ants
               respawn.
             </li>
           </ul>
@@ -580,6 +652,18 @@
               Velocities and weights are clamped to keep the search stable.
             </li>
           </ul>
+          <h4>Backpropagation (BP)</h4>
+          <ul>
+            <li>Traditional gradient descent on neural network weights.</li>
+            <li>
+              Uses REINFORCE-style policy gradient: rewards good actions,
+              penalizes bad ones.
+            </li>
+            <li>
+              Learns from experience within each generation, adjusting weights
+              based on fitness improvements.
+            </li>
+          </ul>
           <h4>Tips</h4>
           <ul>
             <li>
@@ -587,6 +671,10 @@
             </li>
             <li>
               Mutation rate affects GA diversity; too high can cause churn.
+            </li>
+            <li>
+              Learning rate controls BP's step size; too high can destabilize
+              training.
             </li>
             <li>
               Click the canvas to add food and make learning signals denser.
@@ -632,6 +720,11 @@
           ["inertia-weight", "inertia-weight-value"],
           ["cognitive-weight", "cognitive-weight-value"],
           ["social-weight", "social-weight-value"],
+          ["learning-rate", "learning-rate-value"],
+          ["generation-length", "generation-length-value"],
+          ["elite-count", "elite-count-value"],
+          ["population-size", "population-size-value"],
+          ["food-count", "food-count-value"],
         ];
         ids.forEach(([i, v]) => {
           const input = document.getElementById(i);
@@ -668,6 +761,7 @@
     <script src="src/neural.js"></script>
     <script src="src/ga.js"></script>
     <script src="src/pso.js"></script>
+    <script src="src/bp.js"></script>
     <script src="src/ant.js"></script>
     <script src="src/main.js"></script>
   </body>

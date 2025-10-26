@@ -1,17 +1,17 @@
-# 🐜 Evolutionary Ant Simulation: GA vs PSO Neural Network Foraging
+# 🐜 Evolutionary Ant Simulation: GA vs PSO vs Backpropagation
 
-**A fun, interactive p5.js simulation demonstrating how neural networks can be optimized using evolutionary algorithms — no backpropagation required.**
+**A fun, interactive p5.js simulation comparing how neural networks can be optimized using evolutionary algorithms vs traditional backpropagation.**
 
 ![Simulation Preview](https://github.com/user-attachments/assets/f4517841-dcd9-48de-b1f0-252b72cc9af5)
 
 ## 🎯 Overview
 
-This project visualizes two colonies of ants — one powered by **Genetic Algorithms (GA)** and the other by **Particle Swarm Optimization (PSO)** — as they compete to find food in a shared environment.
+This project visualizes three colonies of ants — powered by **Genetic Algorithms (GA)**, **Particle Swarm Optimization (PSO)**, and **Backpropagation (BP)** — as they compete to find food in a shared environment.
 
 Each ant is controlled by a simple **neural network brain** that takes sensory input (like nearby food direction) and decides how to move.  
-Instead of using gradient descent or backpropagation, the ants' neural weights are tuned using **evolutionary methods**.
+The GA and PSO teams use **evolutionary methods** to optimize neural weights, while the BP team uses **traditional gradient descent**.
 
-> Backpropagation isn't the only way to make neural networks learn!
+> Compare evolutionary approaches with traditional backpropagation to see which learns faster!
 
 ## 🧬 Core Concepts
 
@@ -19,7 +19,8 @@ Instead of using gradient descent or backpropagation, the ants' neural weights a
 | ------------------------------------- | ------------------------------------------------------------------------------ |
 | **Neural Networks**                   | Each ant has a tiny feedforward network controlling its movement.              |
 | **Genetic Algorithm (GA)**            | Red ants evolve via selection, crossover, and mutation based on fitness.       |
-| **Particle Swarm Optimization (PSO)** | Blue ants adjust their weights based on personal and global best performances. |
+| **Particle Swarm Optimization (PSO)** | Cyan ants adjust their weights based on personal and global best performances. |
+| **Backpropagation (BP)**              | Yellow ants use gradient descent to learn from reward signals.                 |
 | **Fitness Function**                  | The more food an ant collects, the higher its fitness.                         |
 | **Emergent Behavior**                 | Over generations, each team should learn to forage more efficiently.           |
 
@@ -91,7 +92,8 @@ Every **5 seconds** (300 frames = 1 generation):
 
 - **GA Team:** Performs tournament selection, crossover, and mutation
 - **PSO Team:** Updates velocities and positions based on swarm dynamics
-- Both teams spawn in new random positions
+- **BP Team:** Applies gradient descent to adjust weights based on rewards
+- All teams spawn in new random positions
 - More food is added to the environment
 
 ### Genetic Algorithm (GA)
@@ -106,7 +108,7 @@ The red ants evolve using these steps:
 
 ### Particle Swarm Optimization (PSO)
 
-The blue ants optimize using swarm intelligence:
+The cyan ants optimize using swarm intelligence:
 
 1. **Fitness Evaluation:** Score based on food collected
 2. **Personal Best:** Each ant tracks its best weight configuration
@@ -116,6 +118,16 @@ The blue ants optimize using swarm intelligence:
    v = w*v + c1*r1*(pBest - x) + c2*r2*(gBest - x)
    ```
 5. **Position Update:** Apply velocity to weights
+
+### Backpropagation (BP)
+
+The yellow ants learn using gradient descent:
+
+1. **Fitness Evaluation:** Score based on food collected
+2. **Experience Collection:** Store state-action pairs during episode
+3. **Reward Calculation:** Compute fitness improvement as reward signal
+4. **Gradient Computation:** Calculate gradients via backpropagation
+5. **Weight Update:** Apply gradients using learning rate (REINFORCE-style policy gradient)
 
 ## 🎮 Interactive Controls
 
@@ -131,6 +143,9 @@ The blue ants optimize using swarm intelligence:
 - **Cognitive Weight:** Attraction to personal best position (0.5 - 2.5)
 - **Social Weight:** Attraction to global best position (0.5 - 2.5)
 
+### BP Parameters
+- **Learning Rate:** Step size for gradient descent updates (0.001 - 0.1)
+
 ### Buttons
 - **Reset Simulation:** Restart with new random populations
 - **Pause/Resume:** Pause or resume the simulation
@@ -143,9 +158,10 @@ The blue ants optimize using swarm intelligence:
 ├── src/
 │   ├── main.js        # Simulation loop and coordination
 │   ├── ant.js         # Ant and Food classes
-│   ├── neural.js      # Neural network implementation
+│   ├── neural.js      # Neural network implementation with backpropagation
 │   ├── ga.js          # Genetic Algorithm implementation
-│   └── pso.js         # Particle Swarm Optimization implementation
+│   ├── pso.js         # Particle Swarm Optimization implementation
+│   └── bp.js          # Backpropagation implementation
 ├── README.md          # This file
 └── LICENSE            # MIT License
 ```
@@ -154,7 +170,7 @@ The blue ants optimize using swarm intelligence:
 
 This simulation demonstrates:
 
-1. **Neural networks can be trained without gradients** - Both GA and PSO successfully optimize network weights through evolutionary processes
+1. **Multiple optimization approaches** - Compare evolutionary methods (GA, PSO) with gradient-based learning (backpropagation)
 2. **Emergent behavior** - Simple rules at the individual level lead to complex foraging behaviors at the colony level
 3. **Algorithm comparison** - Observe how different optimization strategies perform on the same task
 4. **Hyperparameter impact** - Adjust sliders to see how parameters affect learning speed and quality
@@ -167,9 +183,10 @@ Watch for these patterns as generations progress:
 - **Middle generations:** Ants start to move toward nearby food more consistently
 - **Later generations:** Ants efficiently navigate to food sources
 
-Compare the two teams:
+Compare the three teams:
 - **GA** tends to have more diversity but can be slower to converge
 - **PSO** often converges faster but may get stuck in local optima
+- **BP** learns through gradients and may adapt quickly if the reward signal is clear
 
 ## 🎯 Future Enhancements
 
@@ -187,12 +204,12 @@ Potential improvements and extensions:
 ## 💡 Why This Project Exists
 
 When teaching about neural networks, students often learn **backpropagation** as the only training method.  
-This project demonstrates that **evolutionary computation** — through GA or PSO — can also discover effective network weights, even when gradients are unavailable or non-differentiable.
+This project demonstrates that **evolutionary computation** — through GA or PSO — can also discover effective network weights, providing a direct comparison with traditional gradient-based learning.
 
-It's a fun way to explore **AI without calculus**, and a great foundation for learning about:
+It's a fun way to explore **different optimization paradigms**, and a great foundation for learning about:
 
 - Emergent behavior in agent-based systems
-- Alternative optimization strategies
+- Comparing evolutionary and gradient-based optimization
 - Interactive, visual AI experiments
 - The connection between biology and machine learning
 

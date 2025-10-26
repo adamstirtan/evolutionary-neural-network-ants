@@ -6,22 +6,29 @@
 // Simulation parameters (canvas size will be set dynamically)
 let CANVAS_WIDTH = 800;
 let CANVAS_HEIGHT = 800;
-const POPULATION_SIZE = 15; // Per team
-const GENERATION_TIME = 300; // Frames (5 seconds at 60fps)
-const INITIAL_FOOD_COUNT = 30;
+let populationSize = 30; // Per team (shared across GA/PSO/BP)
+let generationTime = 600; // Frames (10 seconds at 60fps)
+let foodPieces = 50; // Target max/current food count
 
 // Global variables
 let gaAnts = [];
 let psoAnts = [];
+let bpAnts = [];
 let foods = [];
 let gaAlgorithm;
 let psoAlgorithm;
+let bpAlgorithm;
 let frameCounter = 0;
 let isPaused = false;
 
 // UI elements
 let mutationRateSlider, crossoverRateSlider;
 let inertiaWeightSlider, cognitiveWeightSlider, socialWeightSlider;
+let learningRateSlider;
+let generationLengthSlider;
+let eliteCountSlider;
+let populationSizeSlider;
+let foodCountSlider;
 let fitnessChart;
 
 /**
@@ -39,14 +46,15 @@ function setup() {
   canvas.parent("canvas-container");
 
   // Initialize algorithms
-  gaAlgorithm = new GeneticAlgorithm(POPULATION_SIZE, 0.1, 0.8);
-  psoAlgorithm = new ParticleSwarmOptimization(POPULATION_SIZE, 0.7, 1.5, 1.5);
+  gaAlgorithm = new GeneticAlgorithm(populationSize, 0.15, 0.9, 2);
+  psoAlgorithm = new ParticleSwarmOptimization(populationSize, 0.7, 1.5, 1.5);
+  bpAlgorithm = new Backpropagation(populationSize, 0.01);
 
   // Initialize populations
   initializePopulations();
 
   // Spawn initial food
-  spawnFood(INITIAL_FOOD_COUNT);
+  spawnFood(foodPieces);
 
   // Setup UI controls
   setupUIControls();
@@ -63,17 +71,24 @@ function setup() {
 function initializePopulations() {
   gaAnts = [];
   psoAnts = [];
+  bpAnts = [];
 
   // Create GA ants (red team)
-  for (let i = 0; i < POPULATION_SIZE; i++) {
+  for (let i = 0; i < populationSize; i++) {
     const ant = new Ant(Math.random() * width, Math.random() * height, "ga");
     gaAnts.push(ant);
   }
 
-  // Create PSO ants (blue team)
-  for (let i = 0; i < POPULATION_SIZE; i++) {
+  // Create PSO ants (cyan team)
+  for (let i = 0; i < populationSize; i++) {
     const ant = new Ant(Math.random() * width, Math.random() * height, "pso");
     psoAnts.push(ant);
+  }
+
+  // Create BP ants (yellow team)
+  for (let i = 0; i < populationSize; i++) {
+    const ant = new Ant(Math.random() * width, Math.random() * height, "bp");
+    bpAnts.push(ant);
   }
 }
 
@@ -97,7 +112,10 @@ function setupUIControls() {
     select("#mutation-rate-value").html(mutationRateSlider.value());
     gaAlgorithm.setParameters(
       parseFloat(mutationRateSlider.value()),
-      parseFloat(crossoverRateSlider.value())
+      parseFloat(crossoverRateSlider.value()),
+      eliteCountSlider
+        ? parseInt(eliteCountSlider.value())
+        : gaAlgorithm.eliteCount
     );
   });
 
@@ -107,9 +125,26 @@ function setupUIControls() {
     select("#crossover-rate-value").html(crossoverRateSlider.value());
     gaAlgorithm.setParameters(
       parseFloat(mutationRateSlider.value()),
-      parseFloat(crossoverRateSlider.value())
+      parseFloat(crossoverRateSlider.value()),
+      eliteCountSlider
+        ? parseInt(eliteCountSlider.value())
+        : gaAlgorithm.eliteCount
     );
   });
+
+  // GA elitism (elites 0..3)
+  eliteCountSlider = select("#elite-count");
+  if (eliteCountSlider) {
+    eliteCountSlider.input(() => {
+      const val = parseInt(eliteCountSlider.value());
+      select("#elite-count-value").html(String(val));
+      gaAlgorithm.setParameters(
+        parseFloat(mutationRateSlider.value()),
+        parseFloat(crossoverRateSlider.value()),
+        val
+      );
+    });
+  }
 
   // PSO parameters
   inertiaWeightSlider = select("#inertia-weight");
@@ -142,6 +177,47 @@ function setupUIControls() {
     );
   });
 
+  // BP parameters
+  learningRateSlider = select("#learning-rate");
+  if (learningRateSlider) {
+    learningRateSlider.input(() => {
+      select("#learning-rate-value").html(learningRateSlider.value());
+      bpAlgorithm.setParameters(parseFloat(learningRateSlider.value()));
+    });
+  }
+
+  // Generation length (frames)
+  generationLengthSlider = select("#generation-length");
+  if (generationLengthSlider) {
+    generationLengthSlider.input(() => {
+      const val = parseInt(generationLengthSlider.value());
+      generationTime = isNaN(val) ? 300 : val;
+      select("#generation-length-value").html(String(generationTime));
+    });
+  }
+
+  // Population size (applied on reset)
+  populationSizeSlider = select("#population-size");
+  if (populationSizeSlider) {
+    populationSizeSlider.input(() => {
+      const val = parseInt(populationSizeSlider.value());
+      populationSize = isNaN(val) ? populationSize : val;
+      select("#population-size-value").html(String(populationSize));
+    });
+  }
+
+  // Food pieces (enforced as a cap and initial count)
+  foodCountSlider = select("#food-count");
+  if (foodCountSlider) {
+    foodCountSlider.input(() => {
+      const val = parseInt(foodCountSlider.value());
+      foodPieces = isNaN(val) ? foodPieces : val;
+      select("#food-count-value").html(String(foodPieces));
+      // Adjust current world to not exceed target
+      clampFoodsToTarget();
+    });
+  }
+
   // Reset button with confirmation; pause first, then defer confirm so label updates first
   select("#reset-btn").mousePressed(() => {
     // Pause the simulation and update the pause button text immediately
@@ -173,21 +249,30 @@ function setupUIControls() {
  */
 function resetSimulation() {
   gaAlgorithm = new GeneticAlgorithm(
-    POPULATION_SIZE,
+    populationSize,
     parseFloat(mutationRateSlider.value()),
-    parseFloat(crossoverRateSlider.value())
+    parseFloat(crossoverRateSlider.value()),
+    eliteCountSlider ? parseInt(eliteCountSlider.value()) : 1
   );
   psoAlgorithm = new ParticleSwarmOptimization(
-    POPULATION_SIZE,
+    populationSize,
     parseFloat(inertiaWeightSlider.value()),
     parseFloat(cognitiveWeightSlider.value()),
     parseFloat(socialWeightSlider.value())
   );
+  bpAlgorithm = new Backpropagation(
+    populationSize,
+    learningRateSlider ? parseFloat(learningRateSlider.value()) : 0.01
+  );
 
   initializePopulations();
   foods = [];
-  spawnFood(INITIAL_FOOD_COUNT);
+  spawnFood(foodPieces);
   frameCounter = 0;
+
+  // Clear the fitness chart and seed initial point again
+  clearFitnessChart();
+  appendFitnessPoint();
 }
 
 /**
@@ -205,21 +290,37 @@ function draw() {
     for (let ant of psoAnts) {
       ant.update(foods, width, height);
     }
+    for (let i = 0; i < bpAnts.length; i++) {
+      const ant = bpAnts[i];
+      // Get inputs before update
+      const nearestFood = ant.findNearestFood(foods);
+      const inputs = ant.getInputs(nearestFood);
+
+      // Update ant
+      ant.update(foods, width, height);
+
+      // Get outputs after update (what the network decided to do)
+      const outputs = ant.brain.predict(inputs);
+
+      // Store experience for backpropagation training
+      bpAlgorithm.storeExperience(i, inputs, outputs);
+    }
 
     // Increment frame counter
     frameCounter++;
 
     // Check if it's time for a new generation
-    if (frameCounter >= GENERATION_TIME) {
+    if (frameCounter >= generationTime) {
       evolvePopulations();
       frameCounter = 0;
 
       // Spawn more food for next generation
-      spawnFood(10);
+      const toSpawn = Math.max(0, Math.min(10, foodPieces - foods.length));
+      if (toSpawn > 0) spawnFood(toSpawn);
     }
 
     // Randomly spawn food occasionally
-    if (Math.random() < 0.02 && foods.length < 50) {
+    if (Math.random() < 0.02 && foods.length < foodPieces) {
       spawnFood(1);
     }
   }
@@ -234,6 +335,9 @@ function draw() {
     ant.draw();
   }
   for (let ant of psoAnts) {
+    ant.draw();
+  }
+  for (let ant of bpAnts) {
     ant.draw();
   }
 
@@ -254,6 +358,9 @@ function evolvePopulations() {
   // Evolve PSO population
   psoAnts = psoAlgorithm.evolve(psoAnts, width, height);
 
+  // Evolve BP population
+  bpAnts = bpAlgorithm.evolve(bpAnts, width, height);
+
   // Update chart with new stats for this generation
   appendFitnessPoint();
 }
@@ -264,21 +371,23 @@ function evolvePopulations() {
 function updateStats() {
   const gaStats = gaAlgorithm.getStats();
   const psoStats = psoAlgorithm.getStats();
+  const bpStats = bpAlgorithm.getStats();
 
-  select("#ga-generation").html(gaStats.generation);
   select("#ga-best").html(gaStats.bestFitness);
   select("#ga-avg").html(gaStats.avgFitness);
 
-  select("#pso-generation").html(psoStats.generation);
   select("#pso-best").html(psoStats.bestFitness);
   select("#pso-avg").html(psoStats.avgFitness);
+
+  select("#bp-best").html(bpStats.bestFitness);
+  select("#bp-avg").html(bpStats.avgFitness);
 }
 
 /**
  * Draw generation timer on canvas
  */
 function drawGenerationTimer() {
-  const progress = frameCounter / GENERATION_TIME;
+  const progress = frameCounter / generationTime;
   const barWidth = width * 0.3;
   const barHeight = 20;
   const x = width / 2 - barWidth / 2;
@@ -305,6 +414,20 @@ function drawGenerationTimer() {
 }
 
 /**
+ * Clear the fitness chart (labels and datasets) and redraw empty chart
+ */
+function clearFitnessChart() {
+  if (!fitnessChart) return;
+  fitnessChart.data.labels = [];
+  if (Array.isArray(fitnessChart.data.datasets)) {
+    fitnessChart.data.datasets.forEach((ds) => {
+      ds.data = [];
+    });
+  }
+  fitnessChart.update("none");
+}
+
+/**
  * Handle mouse clicks to add food
  */
 function mousePressed() {
@@ -312,6 +435,14 @@ function mousePressed() {
   if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
     const food = new Food(mouseX, mouseY);
     foods.push(food);
+  }
+}
+
+/** Ensure the number of foods does not exceed the target; trim if necessary */
+function clampFoodsToTarget() {
+  if (foods.length > foodPieces) {
+    // Remove extras (pop from the end)
+    while (foods.length > foodPieces) foods.pop();
   }
 }
 
@@ -379,6 +510,22 @@ function initFitnessChart() {
           borderWidth: 2,
           tension: 0.25,
         },
+        {
+          label: "BP Best",
+          data: [],
+          borderColor: "rgb(255,193,7)",
+          backgroundColor: "rgba(255,193,7,0.15)",
+          borderWidth: 2,
+          tension: 0.25,
+        },
+        {
+          label: "BP Avg",
+          data: [],
+          borderColor: "rgba(255,193,7,0.7)",
+          borderDash: [5, 4],
+          borderWidth: 2,
+          tension: 0.25,
+        },
       ],
     },
     options: {
@@ -416,12 +563,15 @@ function appendFitnessPoint() {
   if (!fitnessChart) return;
   const gaStats = gaAlgorithm.getStats();
   const psoStats = psoAlgorithm.getStats();
+  const bpStats = bpAlgorithm.getStats();
   const gen = gaAlgorithm.generation;
   fitnessChart.data.labels.push(gen);
-  // GA Best, GA Avg, PSO Best, PSO Avg
+  // GA Best, GA Avg, PSO Best, PSO Avg, BP Best, BP Avg
   fitnessChart.data.datasets[0].data.push(gaStats.bestFitness);
   fitnessChart.data.datasets[1].data.push(gaStats.avgFitness);
   fitnessChart.data.datasets[2].data.push(psoStats.bestFitness);
   fitnessChart.data.datasets[3].data.push(psoStats.avgFitness);
+  fitnessChart.data.datasets[4].data.push(bpStats.bestFitness);
+  fitnessChart.data.datasets[5].data.push(bpStats.avgFitness);
   fitnessChart.update("none");
 }
