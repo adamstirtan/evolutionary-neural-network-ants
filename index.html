@@ -210,7 +210,7 @@
         width: 100%;
         height: 200px;
       }
-      #fitness-chart {
+      .chart-wrap canvas {
         width: 100% !important;
         height: 100% !important;
       }
@@ -255,7 +255,16 @@
       }
       #toggle-pause-btn {
         border-color: var(--accent-2);
-        background: transparent;
+        /* Progress background fills based on --progress (0..1) */
+        background-image: linear-gradient(
+          90deg,
+          rgba(87, 166, 255, 0.35) 0%,
+          rgba(87, 166, 255, 0.35) calc(var(--progress, 0) * 100%),
+          transparent calc(var(--progress, 0) * 100%)
+        );
+        transition: background-image 80ms linear, filter 0.15s ease,
+          border-color 0.15s ease;
+        will-change: background-image;
       }
 
       /* Modal */
@@ -370,7 +379,7 @@
         </div>
         <div class="top-controls">
           <button id="reset-btn">Reset</button>
-          <button id="toggle-pause-btn">Pause</button>
+          <button id="toggle-pause-btn">Start</button>
         </div>
         <div class="actions">
           <button class="icon-btn" id="info-btn" aria-label="How it works">
@@ -447,6 +456,9 @@
 
           <div class="panel">
             <div class="chart-wrap"><canvas id="fitness-chart"></canvas></div>
+            <div class="chart-wrap" style="margin-top: 12px">
+              <canvas id="fitness-chart-avg"></canvas>
+            </div>
             <div class="control-group">
               <label for="generation-length">Generation Length (frames)</label>
               <input
@@ -482,13 +494,6 @@
                 value="50"
               />
               <div class="value" id="food-count-value">50</div>
-            </div>
-            <div class="control-group">
-              <label for="auto-food-scale"
-                >Auto-scale food with performance</label
-              >
-              <input type="checkbox" id="auto-food-scale" checked />
-              <div></div>
             </div>
           </div>
 

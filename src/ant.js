@@ -63,9 +63,11 @@ class Ant {
     this.x += this.velocity.x;
     this.y += this.velocity.y;
 
-    // Wrap around edges
-    this.x = (this.x + width) % width;
-    this.y = (this.y + height) % height;
+    // Do not wrap: clamp to world bounds (hitting the wall is penalizing by limiting movement)
+    if (this.x < 0) this.x = 0;
+    if (this.x > width) this.x = width;
+    if (this.y < 0) this.y = 0;
+    if (this.y > height) this.y = height;
 
     // Check for food collision
     this.checkFoodCollision(foods);

@@ -8,9 +8,7 @@ let CANVAS_WIDTH = 800;
 let CANVAS_HEIGHT = 800;
 let populationSize = 30; // Per team (shared across GA/PSO/BP)
 let generationTime = 600; // Frames (10 seconds at 60fps)
-const FOOD_MAX_CAP = 200;
-let baseFoodPieces = 50; // User-selected baseline via slider
-let foodPieces = baseFoodPieces; // Dynamic target that may auto-scale
+let foodPieces = 50; // Fixed target set by user; replenished only at generation end
 
 // Global variables
 let gaAnts = [];
@@ -21,7 +19,7 @@ let gaAlgorithm;
 let psoAlgorithm;
 let bpAlgorithm;
 let frameCounter = 0;
-let isPaused = false;
+let isPaused = true; // Start paused to let the user set parameters, then press Start
 
 // UI elements
 let mutationRateSlider, crossoverRateSlider;
@@ -31,8 +29,8 @@ let generationLengthSlider;
 let eliteCountSlider;
 let populationSizeSlider;
 let foodCountSlider;
-let autoFoodScaleCheckbox;
 let fitnessChart;
+let fitnessChartAvg;
 
 /**
  * p5.js setup function - runs once at start
@@ -214,27 +212,9 @@ function setupUIControls() {
   if (foodCountSlider) {
     foodCountSlider.input(() => {
       const val = parseInt(foodCountSlider.value());
-      baseFoodPieces = isNaN(val) ? baseFoodPieces : val;
-      select("#food-count-value").html(String(baseFoodPieces));
-      if (autoFoodScaleCheckbox && autoFoodScaleCheckbox.elt.checked) {
-        recomputeFoodTargetWithPerformance();
-      } else {
-        foodPieces = baseFoodPieces;
-        enforceFoodTarget();
-      }
-    });
-  }
-
-  // Auto-scale food with performance
-  autoFoodScaleCheckbox = select("#auto-food-scale");
-  if (autoFoodScaleCheckbox) {
-    autoFoodScaleCheckbox.changed(() => {
-      if (autoFoodScaleCheckbox.elt.checked) {
-        recomputeFoodTargetWithPerformance();
-      } else {
-        foodPieces = baseFoodPieces;
-        enforceFoodTarget();
-      }
+      foodPieces = isNaN(val) ? foodPieces : val;
+      select("#food-count-value").html(String(foodPieces));
+      // Do not add or remove food immediately; only replenish at generation end
     });
   }
 
@@ -243,7 +223,7 @@ function setupUIControls() {
     // Pause the simulation and update the pause button text immediately
     isPaused = true;
     const pauseBtn = select("#toggle-pause-btn");
-    if (pauseBtn) pauseBtn.html("Resume");
+    if (pauseBtn) pauseBtn.html("Start");
 
     // Defer blocking confirm to next tick to allow UI to paint updated label
     setTimeout(() => {
@@ -334,14 +314,9 @@ function draw() {
       evolvePopulations();
       frameCounter = 0;
 
-      // Spawn more food for next generation
-      const toSpawn = Math.max(0, Math.min(10, foodPieces - foods.length));
+      // Replenish food only at generation end up to the target count
+      const toSpawn = Math.max(0, foodPieces - foods.length);
       if (toSpawn > 0) spawnFood(toSpawn);
-    }
-
-    // Randomly spawn food occasionally
-    if (Math.random() < 0.02 && foods.length < foodPieces) {
-      spawnFood(1);
     }
   }
 
@@ -383,11 +358,6 @@ function evolvePopulations() {
 
   // Update chart with new stats for this generation
   appendFitnessPoint();
-
-  // Adjust the food target based on effectiveness for next generation
-  if (autoFoodScaleCheckbox && autoFoodScaleCheckbox.elt.checked) {
-    recomputeFoodTargetWithPerformance();
-  }
 }
 
 /**
@@ -413,29 +383,15 @@ function updateStats() {
  */
 function drawGenerationTimer() {
   const progress = frameCounter / generationTime;
-  const barWidth = width * 0.3;
-  const barHeight = 20;
-  const x = width / 2 - barWidth / 2;
-  const y = 20;
-
-  // Background
-  fill(16, 33, 62);
-  noStroke();
-  rect(x, y, barWidth, barHeight, 5);
-
-  // Progress bar
-  fill(76, 209, 55);
-  rect(x, y, barWidth * progress, barHeight, 5);
-
-  // Text
-  fill(255);
-  textAlign(CENTER, CENTER);
-  textSize(12);
-  text(
-    `Generation ${gaAlgorithm.generation} - ${Math.floor(progress * 100)}%`,
-    width / 2,
-    y + barHeight / 2
-  );
+  // Update the Start/Pause button background to reflect generation progress
+  const btnEl = document.getElementById("toggle-pause-btn");
+  if (btnEl) {
+    const clamped = Math.max(0, Math.min(1, progress));
+    btnEl.style.setProperty("--progress", String(clamped));
+    btnEl.setAttribute("aria-valuemin", "0");
+    btnEl.setAttribute("aria-valuemax", "100");
+    btnEl.setAttribute("aria-valuenow", String(Math.floor(clamped * 100)));
+  }
 }
 
 /**
@@ -450,6 +406,16 @@ function clearFitnessChart() {
     });
   }
   fitnessChart.update("none");
+
+  if (fitnessChartAvg) {
+    fitnessChartAvg.data.labels = [];
+    if (Array.isArray(fitnessChartAvg.data.datasets)) {
+      fitnessChartAvg.data.datasets.forEach((ds) => {
+        ds.data = [];
+      });
+    }
+    fitnessChartAvg.update("none");
+  }
 }
 
 /**
@@ -463,13 +429,7 @@ function mousePressed() {
   }
 }
 
-/** Ensure the number of foods does not exceed the target; trim if necessary */
-function clampFoodsToTarget() {
-  if (foods.length > foodPieces) {
-    // Remove extras (pop from the end)
-    while (foods.length > foodPieces) foods.pop();
-  }
-}
+// (auto food scaling removed)
 
 /**
  * Handle window resize to keep canvas full available area
@@ -491,31 +451,19 @@ function windowResized() {
   }
 }
 
-/**
- * Recompute food target using current performance to keep learning signal dense.
- * Uses average fitness across GA/PSO/BP to scale the target monotonically upward.
- */
-function recomputeFoodTargetWithPerformance() {
-  const gaStats = gaAlgorithm.getStats();
-  const psoStats = psoAlgorithm.getStats();
-  const bpStats = bpAlgorithm.getStats();
-  const combinedAvg =
-    (gaStats.avgFitness + psoStats.avgFitness + bpStats.avgFitness) / 3;
-  // For every ~30 avg fitness, add +5 foods. Tune as needed.
-  const bonus = Math.max(0, Math.floor(combinedAvg / 30) * 5);
-  const desired = Math.min(FOOD_MAX_CAP, baseFoodPieces + bonus);
-  // Monotonic increase while auto-scale is enabled
-  foodPieces = Math.max(foodPieces, desired);
-  enforceFoodTarget();
-}
+// (auto food scaling removed)
 
 /**
  * Initialize the fitness chart (Chart.js)
  */
 function initFitnessChart() {
   const el = document.getElementById("fitness-chart");
-  if (!el || typeof Chart === "undefined") return;
+  const elAvg = document.getElementById("fitness-chart-avg");
+  if (!el || !elAvg || typeof Chart === "undefined") return;
   const ctx = el.getContext("2d");
+  const ctxAvg = elAvg.getContext("2d");
+
+  // Best-only chart
   fitnessChart = new Chart(ctx, {
     type: "line",
     data: {
@@ -530,26 +478,10 @@ function initFitnessChart() {
           tension: 0.25,
         },
         {
-          label: "GA Avg",
-          data: [],
-          borderColor: "rgba(255,107,107,0.7)",
-          borderDash: [5, 4],
-          borderWidth: 2,
-          tension: 0.25,
-        },
-        {
           label: "PSO Best",
           data: [],
           borderColor: "rgb(78,205,196)",
           backgroundColor: "rgba(78,205,196,0.15)",
-          borderWidth: 2,
-          tension: 0.25,
-        },
-        {
-          label: "PSO Avg",
-          data: [],
-          borderColor: "rgba(78,205,196,0.7)",
-          borderDash: [5, 4],
           borderWidth: 2,
           tension: 0.25,
         },
@@ -561,10 +493,61 @@ function initFitnessChart() {
           borderWidth: 2,
           tension: 0.25,
         },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          title: { display: false },
+          grid: { color: "rgba(255,255,255,0.06)" },
+          ticks: { color: "#a7b1c2" },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(255,255,255,0.06)" },
+          ticks: { color: "#a7b1c2" },
+        },
+      },
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { color: "#e7edf6", boxWidth: 12 },
+        },
+        tooltip: { enabled: true },
+      },
+      elements: { point: { radius: 0 } },
+    },
+  });
+
+  // Avg-only chart
+  fitnessChartAvg = new Chart(ctxAvg, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "GA Avg",
+          data: [],
+          borderColor: "rgba(255,107,107,0.9)",
+          borderDash: [5, 4],
+          borderWidth: 2,
+          tension: 0.25,
+        },
+        {
+          label: "PSO Avg",
+          data: [],
+          borderColor: "rgba(78,205,196,0.9)",
+          borderDash: [5, 4],
+          borderWidth: 2,
+          tension: 0.25,
+        },
         {
           label: "BP Avg",
           data: [],
-          borderColor: "rgba(255,193,7,0.7)",
+          borderColor: "rgba(255,193,7,0.9)",
           borderDash: [5, 4],
           borderWidth: 2,
           tension: 0.25,
@@ -609,21 +592,20 @@ function appendFitnessPoint() {
   const bpStats = bpAlgorithm.getStats();
   const gen = gaAlgorithm.generation;
   fitnessChart.data.labels.push(gen);
-  // GA Best, GA Avg, PSO Best, PSO Avg, BP Best, BP Avg
+  // Best-only chart: GA Best, PSO Best, BP Best
   fitnessChart.data.datasets[0].data.push(gaStats.bestFitness);
-  fitnessChart.data.datasets[1].data.push(gaStats.avgFitness);
-  fitnessChart.data.datasets[2].data.push(psoStats.bestFitness);
-  fitnessChart.data.datasets[3].data.push(psoStats.avgFitness);
-  fitnessChart.data.datasets[4].data.push(bpStats.bestFitness);
-  fitnessChart.data.datasets[5].data.push(bpStats.avgFitness);
+  fitnessChart.data.datasets[1].data.push(psoStats.bestFitness);
+  fitnessChart.data.datasets[2].data.push(bpStats.bestFitness);
   fitnessChart.update("none");
-}
 
-/** Ensure the current world matches the target foodPieces: trim or spawn */
-function enforceFoodTarget() {
-  if (foods.length > foodPieces) {
-    while (foods.length > foodPieces) foods.pop();
-  } else if (foods.length < foodPieces) {
-    spawnFood(foodPieces - foods.length);
+  if (fitnessChartAvg) {
+    fitnessChartAvg.data.labels.push(gen);
+    // Avg-only chart: GA Avg, PSO Avg, BP Avg
+    fitnessChartAvg.data.datasets[0].data.push(gaStats.avgFitness);
+    fitnessChartAvg.data.datasets[1].data.push(psoStats.avgFitness);
+    fitnessChartAvg.data.datasets[2].data.push(bpStats.avgFitness);
+    fitnessChartAvg.update("none");
   }
 }
+
+// (auto food scaling removed)
