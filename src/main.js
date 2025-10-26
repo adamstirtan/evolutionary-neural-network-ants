@@ -8,7 +8,9 @@ let CANVAS_WIDTH = 800;
 let CANVAS_HEIGHT = 800;
 let populationSize = 30; // Per team (shared across GA/PSO/BP)
 let generationTime = 600; // Frames (10 seconds at 60fps)
-let foodPieces = 50; // Target max/current food count
+const FOOD_MAX_CAP = 200;
+let baseFoodPieces = 50; // User-selected baseline via slider
+let foodPieces = baseFoodPieces; // Dynamic target that may auto-scale
 
 // Global variables
 let gaAnts = [];
@@ -29,6 +31,7 @@ let generationLengthSlider;
 let eliteCountSlider;
 let populationSizeSlider;
 let foodCountSlider;
+let autoFoodScaleCheckbox;
 let fitnessChart;
 
 /**
@@ -211,10 +214,27 @@ function setupUIControls() {
   if (foodCountSlider) {
     foodCountSlider.input(() => {
       const val = parseInt(foodCountSlider.value());
-      foodPieces = isNaN(val) ? foodPieces : val;
-      select("#food-count-value").html(String(foodPieces));
-      // Adjust current world to not exceed target
-      clampFoodsToTarget();
+      baseFoodPieces = isNaN(val) ? baseFoodPieces : val;
+      select("#food-count-value").html(String(baseFoodPieces));
+      if (autoFoodScaleCheckbox && autoFoodScaleCheckbox.elt.checked) {
+        recomputeFoodTargetWithPerformance();
+      } else {
+        foodPieces = baseFoodPieces;
+        enforceFoodTarget();
+      }
+    });
+  }
+
+  // Auto-scale food with performance
+  autoFoodScaleCheckbox = select("#auto-food-scale");
+  if (autoFoodScaleCheckbox) {
+    autoFoodScaleCheckbox.changed(() => {
+      if (autoFoodScaleCheckbox.elt.checked) {
+        recomputeFoodTargetWithPerformance();
+      } else {
+        foodPieces = baseFoodPieces;
+        enforceFoodTarget();
+      }
     });
   }
 
@@ -363,6 +383,11 @@ function evolvePopulations() {
 
   // Update chart with new stats for this generation
   appendFitnessPoint();
+
+  // Adjust the food target based on effectiveness for next generation
+  if (autoFoodScaleCheckbox && autoFoodScaleCheckbox.elt.checked) {
+    recomputeFoodTargetWithPerformance();
+  }
 }
 
 /**
@@ -464,6 +489,24 @@ function windowResized() {
       if (f.y > height) f.y = height - 1;
     }
   }
+}
+
+/**
+ * Recompute food target using current performance to keep learning signal dense.
+ * Uses average fitness across GA/PSO/BP to scale the target monotonically upward.
+ */
+function recomputeFoodTargetWithPerformance() {
+  const gaStats = gaAlgorithm.getStats();
+  const psoStats = psoAlgorithm.getStats();
+  const bpStats = bpAlgorithm.getStats();
+  const combinedAvg =
+    (gaStats.avgFitness + psoStats.avgFitness + bpStats.avgFitness) / 3;
+  // For every ~30 avg fitness, add +5 foods. Tune as needed.
+  const bonus = Math.max(0, Math.floor(combinedAvg / 30) * 5);
+  const desired = Math.min(FOOD_MAX_CAP, baseFoodPieces + bonus);
+  // Monotonic increase while auto-scale is enabled
+  foodPieces = Math.max(foodPieces, desired);
+  enforceFoodTarget();
 }
 
 /**
@@ -574,4 +617,13 @@ function appendFitnessPoint() {
   fitnessChart.data.datasets[4].data.push(bpStats.bestFitness);
   fitnessChart.data.datasets[5].data.push(bpStats.avgFitness);
   fitnessChart.update("none");
+}
+
+/** Ensure the current world matches the target foodPieces: trim or spawn */
+function enforceFoodTarget() {
+  if (foods.length > foodPieces) {
+    while (foods.length > foodPieces) foods.pop();
+  } else if (foods.length < foodPieces) {
+    spawnFood(foodPieces - foods.length);
+  }
 }
