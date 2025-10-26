@@ -446,7 +446,6 @@
           </div>
 
           <div class="panel">
-            <h3>Progress</h3>
             <div class="chart-wrap"><canvas id="fitness-chart"></canvas></div>
             <div class="control-group">
               <label for="generation-length">Generation Length (frames)</label>
@@ -456,9 +455,9 @@
                 min="60"
                 max="1200"
                 step="30"
-                value="300"
+                value="600"
               />
-              <div class="value" id="generation-length-value">300</div>
+              <div class="value" id="generation-length-value">600</div>
             </div>
             <div class="control-group">
               <label for="population-size">Population Size (per team)</label>
@@ -468,9 +467,9 @@
                 min="3"
                 max="60"
                 step="1"
-                value="15"
+                value="30"
               />
-              <div class="value" id="population-size-value">15</div>
+              <div class="value" id="population-size-value">30</div>
             </div>
             <div class="control-group">
               <label for="food-count">Food Pieces</label>
@@ -480,9 +479,9 @@
                 min="0"
                 max="200"
                 step="1"
-                value="30"
+                value="50"
               />
-              <div class="value" id="food-count-value">30</div>
+              <div class="value" id="food-count-value">50</div>
             </div>
           </div>
 
@@ -496,9 +495,9 @@
                 min="0.01"
                 max="0.5"
                 step="0.01"
-                value="0.1"
+                value="0.15"
               />
-              <div class="value" id="mutation-rate-value">0.1</div>
+              <div class="value" id="mutation-rate-value">0.15</div>
             </div>
             <div class="control-group">
               <label for="crossover-rate">Crossover Rate</label>
@@ -508,9 +507,9 @@
                 min="0.5"
                 max="1.0"
                 step="0.05"
-                value="0.8"
+                value="0.9"
               />
-              <div class="value" id="crossover-rate-value">0.8</div>
+              <div class="value" id="crossover-rate-value">0.9</div>
             </div>
             <div class="control-group">
               <label for="elite-count">Elites (0–3)</label>
@@ -520,9 +519,9 @@
                 min="0"
                 max="3"
                 step="1"
-                value="1"
+                value="2"
               />
-              <div class="value" id="elite-count-value">1</div>
+              <div class="value" id="elite-count-value">2</div>
             </div>
           </div>
 
@@ -623,7 +622,7 @@
           <h4>Episode and Fitness</h4>
           <ul>
             <li>
-              One generation length is adjustable (default 300 frames). All ants
+              One generation length is adjustable (default 600 frames). All ants
               act simultaneously.
             </li>
             <li>

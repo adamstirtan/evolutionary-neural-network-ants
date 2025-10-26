@@ -6,9 +6,9 @@
 // Simulation parameters (canvas size will be set dynamically)
 let CANVAS_WIDTH = 800;
 let CANVAS_HEIGHT = 800;
-let populationSize = 15; // Per team (shared across GA/PSO/BP)
-let generationTime = 300; // Frames (5 seconds at 60fps)
-let foodPieces = 30; // Target max/current food count
+let populationSize = 30; // Per team (shared across GA/PSO/BP)
+let generationTime = 600; // Frames (10 seconds at 60fps)
+let foodPieces = 50; // Target max/current food count
 
 // Global variables
 let gaAnts = [];
@@ -46,7 +46,7 @@ function setup() {
   canvas.parent("canvas-container");
 
   // Initialize algorithms
-  gaAlgorithm = new GeneticAlgorithm(populationSize, 0.1, 0.8, 1);
+  gaAlgorithm = new GeneticAlgorithm(populationSize, 0.15, 0.9, 2);
   psoAlgorithm = new ParticleSwarmOptimization(populationSize, 0.7, 1.5, 1.5);
   bpAlgorithm = new Backpropagation(populationSize, 0.01);
 
