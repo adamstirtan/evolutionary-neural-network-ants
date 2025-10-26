@@ -1,10 +1,10 @@
-# 🐜 Evolutionary Ant Simulation: GA vs PSO vs Backpropagation
+# Evolutionary Ant Simulation: GA vs PSO vs Backpropagation
 
 **A fun, interactive p5.js simulation comparing how neural networks can be optimized using evolutionary algorithms vs traditional backpropagation.**
 
-![Simulation Preview](https://github.com/user-attachments/assets/f4517841-dcd9-48de-b1f0-252b72cc9af5)
+![Simulation Preview](https://github.com/user-attachments/assets/0bff7457-6213-4bb2-9fc2-d52af7c2defe)
 
-## 🎯 Overview
+## Overview
 
 This project visualizes three colonies of ants — powered by **Genetic Algorithms (GA)**, **Particle Swarm Optimization (PSO)**, and **Backpropagation (BP)** — as they compete to find food in a shared environment.
 
@@ -13,7 +13,7 @@ The GA and PSO teams use **evolutionary methods** to optimize neural weights, wh
 
 > Compare evolutionary approaches with traditional backpropagation to see which learns faster!
 
-## 🧬 Core Concepts
+## Core Concepts
 
 | Concept                               | Description                                                                    |
 | ------------------------------------- | ------------------------------------------------------------------------------ |
@@ -24,7 +24,7 @@ The GA and PSO teams use **evolutionary methods** to optimize neural weights, wh
 | **Fitness Function**                  | The more food an ant collects, the higher its fitness.                         |
 | **Emergent Behavior**                 | Over generations, each team should learn to forage more efficiently.           |
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Running Locally
 
@@ -34,32 +34,11 @@ The GA and PSO teams use **evolutionary methods** to optimize neural weights, wh
    cd evolutionary-neural-network-ants
    ```
 
-2. Start a local web server:
-   ```bash
-   # Using Python 3
-   python3 -m http.server 8080
-   
-   # Or using Python 2
-   python -m SimpleHTTPServer 8080
-   
-   # Or using Node.js
-   npx http-server -p 8080
-   ```
+2. Open your browser and navigate open the `index.html` file
 
-3. Open your browser and navigate to:
-   ```
-   http://localhost:8080
-   ```
+3. Watch the ants learn! Click on the canvas to add more food.
 
-4. Watch the ants learn! Click on the canvas to add more food.
-
-### Using p5.js Web Editor
-
-1. Go to [editor.p5js.org](https://editor.p5js.org)
-2. Copy the contents of `index.html` and paste it into the editor
-3. Press **▶️ Run** to start the simulation
-
-## 🧠 How It Works
+## How It Works
 
 ### Neural Network Architecture
 
@@ -129,7 +108,7 @@ The yellow ants learn using gradient descent:
 4. **Gradient Computation:** Calculate gradients via backpropagation
 5. **Weight Update:** Apply gradients using learning rate (REINFORCE-style policy gradient)
 
-## 🎮 Interactive Controls
+## Interactive Controls
 
 ### Canvas Interaction
 - **Click anywhere** on the canvas to spawn new food
@@ -166,7 +145,7 @@ The yellow ants learn using gradient descent:
 └── LICENSE            # MIT License
 ```
 
-## 🔬 Learning Outcomes
+## Learning Outcomes
 
 This simulation demonstrates:
 
@@ -175,7 +154,7 @@ This simulation demonstrates:
 3. **Algorithm comparison** - Observe how different optimization strategies perform on the same task
 4. **Hyperparameter impact** - Adjust sliders to see how parameters affect learning speed and quality
 
-## 📊 Observing Learning
+## Observing Learning
 
 Watch for these patterns as generations progress:
 
@@ -187,60 +166,6 @@ Compare the three teams:
 - **GA** tends to have more diversity but can be slower to converge
 - **PSO** often converges faster but may get stuck in local optima
 - **BP** learns through gradients and may adapt quickly if the reward signal is clear
-
-## 🎯 Future Enhancements
-
-Potential improvements and extensions:
-
-- [ ] Add obstacles that ants must navigate around
-- [ ] Implement pheromone trails for communication
-- [ ] Add predators or competing objectives
-- [ ] Visualize neural network weights in real-time
-- [ ] Save/load best-performing ant brains
-- [ ] Add more advanced neural architectures
-- [ ] Implement additional evolutionary algorithms (CMA-ES, Neuroevolution, etc.)
-- [ ] Add performance graphs over time
-
-## 💡 Why This Project Exists
-
-When teaching about neural networks, students often learn **backpropagation** as the only training method.  
-This project demonstrates that **evolutionary computation** — through GA or PSO — can also discover effective network weights, providing a direct comparison with traditional gradient-based learning.
-
-It's a fun way to explore **different optimization paradigms**, and a great foundation for learning about:
-
-- Emergent behavior in agent-based systems
-- Comparing evolutionary and gradient-based optimization
-- Interactive, visual AI experiments
-- The connection between biology and machine learning
-
-## 🧰 Tech Stack
-
-- **JavaScript** - Core programming language
-- **p5.js** - Graphics and animation library
-- **HTML/CSS** - User interface and styling
-
-No build tools or dependencies required! Just open in a browser.
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-
-- Report bugs or request features via GitHub Issues
-- Submit pull requests with improvements
-- Share your own experiments and modifications
-
-## 🙏 Acknowledgments
-
-This project was inspired by:
-
-- Research in neuroevolution and evolutionary computation
-- The p5.js creative coding community
-- Educational demonstrations of alternative ML training methods
-- Nature's own optimization algorithms (ant colonies, bird flocks, etc.)
 
 ## 📚 Further Reading
 
