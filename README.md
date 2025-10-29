@@ -29,6 +29,7 @@ The GA and PSO teams use **evolutionary methods** to optimize neural weights, wh
 ### Running Locally
 
 1. Clone this repository:
+
    ```bash
    git clone https://github.com/adamstirtan/evolutionary-neural-network-ants.git
    cd evolutionary-neural-network-ants
@@ -45,6 +46,7 @@ The GA and PSO teams use **evolutionary methods** to optimize neural weights, wh
 Each ant's brain is a simple feedforward neural network:
 
 - **Input Layer (5 neurons):**
+
   - Food angle (relative to ant's heading)
   - Food distance (normalized)
   - Velocity X
@@ -52,6 +54,7 @@ Each ant's brain is a simple feedforward neural network:
   - Bias (constant 1.0)
 
 - **Hidden Layer (4 neurons):**
+
   - Uses tanh activation function
 
 - **Output Layer (2 neurons):**
@@ -92,7 +95,7 @@ The cyan ants optimize using swarm intelligence:
 1. **Fitness Evaluation:** Score based on food collected
 2. **Personal Best:** Each ant tracks its best weight configuration
 3. **Global Best:** Track the best weights across all ants
-4. **Velocity Update:** 
+4. **Velocity Update:**
    ```
    v = w*v + c1*r1*(pBest - x) + c2*r2*(gBest - x)
    ```
@@ -111,21 +114,32 @@ The yellow ants learn using gradient descent:
 ## Interactive Controls
 
 ### Canvas Interaction
+
 - **Click anywhere** on the canvas to spawn new food
 
+### Active Teams
+
+- Enable/disable which teams participate: **GA**, **PSO**, **BP**
+- These checkboxes are only editable while the simulation is **paused**
+- Changing team selection resets the simulation to apply the change
+
 ### GA Parameters
+
 - **Mutation Rate:** Controls how much random variation is added (0.01 - 0.5)
 - **Crossover Rate:** Probability of combining two parents (0.5 - 1.0)
 
 ### PSO Parameters
+
 - **Inertia Weight:** How much previous velocity influences movement (0.4 - 0.9)
 - **Cognitive Weight:** Attraction to personal best position (0.5 - 2.5)
 - **Social Weight:** Attraction to global best position (0.5 - 2.5)
 
 ### BP Parameters
+
 - **Learning Rate:** Step size for gradient descent updates (0.001 - 0.1)
 
 ### Buttons
+
 - **Reset Simulation:** Restart with new random populations
 - **Pause/Resume:** Pause or resume the simulation
 
@@ -163,6 +177,7 @@ Watch for these patterns as generations progress:
 - **Later generations:** Ants efficiently navigate to food sources
 
 Compare the three teams:
+
 - **GA** tends to have more diversity but can be slower to converge
 - **PSO** often converges faster but may get stuck in local optima
 - **BP** learns through gradients and may adapt quickly if the reward signal is clear

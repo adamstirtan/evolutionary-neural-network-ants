@@ -34,6 +34,12 @@ let fitnessChart;
 let fitnessChartAvg;
 let foodDecayCheckbox;
 let freePlayCheckbox;
+let toggleGA, togglePSO, toggleBP;
+
+// Active teams (can only be changed while paused)
+let enableGA = true;
+let enablePSO = true;
+let enableBP = true;
 
 /**
  * p5.js setup function - runs once at start
@@ -79,21 +85,27 @@ function initializePopulations() {
   bpAnts = [];
 
   // Create GA ants (red team)
-  for (let i = 0; i < populationSize; i++) {
-    const ant = new Ant(Math.random() * width, Math.random() * height, "ga");
-    gaAnts.push(ant);
+  if (enableGA) {
+    for (let i = 0; i < populationSize; i++) {
+      const ant = new Ant(Math.random() * width, Math.random() * height, "ga");
+      gaAnts.push(ant);
+    }
   }
 
   // Create PSO ants (cyan team)
-  for (let i = 0; i < populationSize; i++) {
-    const ant = new Ant(Math.random() * width, Math.random() * height, "pso");
-    psoAnts.push(ant);
+  if (enablePSO) {
+    for (let i = 0; i < populationSize; i++) {
+      const ant = new Ant(Math.random() * width, Math.random() * height, "pso");
+      psoAnts.push(ant);
+    }
   }
 
   // Create BP ants (yellow team)
-  for (let i = 0; i < populationSize; i++) {
-    const ant = new Ant(Math.random() * width, Math.random() * height, "bp");
-    bpAnts.push(ant);
+  if (enableBP) {
+    for (let i = 0; i < populationSize; i++) {
+      const ant = new Ant(Math.random() * width, Math.random() * height, "bp");
+      bpAnts.push(ant);
+    }
   }
 }
 
@@ -111,6 +123,32 @@ function spawnFood(count) {
  * Setup UI controls and event listeners
  */
 function setupUIControls() {
+  // Team toggles (editable only while paused)
+  toggleGA = select("#toggle-ga");
+  togglePSO = select("#toggle-pso");
+  toggleBP = select("#toggle-bp");
+
+  if (toggleGA) enableGA = !!toggleGA.elt.checked;
+  if (togglePSO) enablePSO = !!togglePSO.elt.checked;
+  if (toggleBP) enableBP = !!toggleBP.elt.checked;
+
+  function applyTeamToggle() {
+    // When toggled (only while paused), reset the simulation to apply changes
+    if (!isPaused) return;
+    // Update flags from DOM in case they changed programmatically
+    enableGA = toggleGA ? !!toggleGA.elt.checked : enableGA;
+    enablePSO = togglePSO ? !!togglePSO.elt.checked : enablePSO;
+    enableBP = toggleBP ? !!toggleBP.elt.checked : enableBP;
+    resetSimulation();
+  }
+
+  if (toggleGA) toggleGA.changed(applyTeamToggle);
+  if (togglePSO) togglePSO.changed(applyTeamToggle);
+  if (toggleBP) toggleBP.changed(applyTeamToggle);
+
+  // Reflect current paused state in toggle enablement
+  updateTeamToggleDisabledState();
+
   // Mutation rate slider
   mutationRateSlider = select("#mutation-rate");
   mutationRateSlider.input(() => {
@@ -234,6 +272,8 @@ function setupUIControls() {
     isPaused = true;
     const pauseBtn = select("#toggle-pause-btn");
     if (pauseBtn) pauseBtn.html("Start");
+    // Enable team toggles when paused
+    updateTeamToggleDisabledState();
 
     // Defer blocking confirm to next tick to allow UI to paint updated label
     setTimeout(() => {
@@ -251,6 +291,8 @@ function setupUIControls() {
   select("#toggle-pause-btn").mousePressed(() => {
     isPaused = !isPaused;
     select("#toggle-pause-btn").html(isPaused ? "Resume" : "Pause");
+    // Disable or enable team toggles based on running state
+    updateTeamToggleDisabledState();
   });
 }
 
@@ -392,13 +434,13 @@ function draw() {
  */
 function evolvePopulations() {
   // Evolve GA population
-  gaAnts = gaAlgorithm.evolve(gaAnts, width, height);
+  if (enableGA) gaAnts = gaAlgorithm.evolve(gaAnts, width, height);
 
   // Evolve PSO population
-  psoAnts = psoAlgorithm.evolve(psoAnts, width, height);
+  if (enablePSO) psoAnts = psoAlgorithm.evolve(psoAnts, width, height);
 
   // Evolve BP population
-  bpAnts = bpAlgorithm.evolve(bpAnts, width, height);
+  if (enableBP) bpAnts = bpAlgorithm.evolve(bpAnts, width, height);
 
   // Update chart with new stats for this generation
   appendFitnessPoint();
@@ -412,14 +454,14 @@ function updateStats() {
   const psoStats = psoAlgorithm.getStats();
   const bpStats = bpAlgorithm.getStats();
 
-  select("#ga-best").html(gaStats.bestFitness);
-  select("#ga-avg").html(gaStats.avgFitness);
+  select("#ga-best").html(enableGA ? gaStats.bestFitness : "—");
+  select("#ga-avg").html(enableGA ? gaStats.avgFitness : "—");
 
-  select("#pso-best").html(psoStats.bestFitness);
-  select("#pso-avg").html(psoStats.avgFitness);
+  select("#pso-best").html(enablePSO ? psoStats.bestFitness : "—");
+  select("#pso-avg").html(enablePSO ? psoStats.avgFitness : "—");
 
-  select("#bp-best").html(bpStats.bestFitness);
-  select("#bp-avg").html(bpStats.avgFitness);
+  select("#bp-best").html(enableBP ? bpStats.bestFitness : "—");
+  select("#bp-avg").html(enableBP ? bpStats.avgFitness : "—");
 }
 
 /**
@@ -637,19 +679,41 @@ function appendFitnessPoint() {
   const gen = gaAlgorithm.generation;
   fitnessChart.data.labels.push(gen);
   // Best-only chart: GA Best, PSO Best, BP Best
-  fitnessChart.data.datasets[0].data.push(gaStats.bestFitness);
-  fitnessChart.data.datasets[1].data.push(psoStats.bestFitness);
-  fitnessChart.data.datasets[2].data.push(bpStats.bestFitness);
+  fitnessChart.data.datasets[0].data.push(
+    enableGA ? gaStats.bestFitness : null
+  );
+  fitnessChart.data.datasets[1].data.push(
+    enablePSO ? psoStats.bestFitness : null
+  );
+  fitnessChart.data.datasets[2].data.push(
+    enableBP ? bpStats.bestFitness : null
+  );
   fitnessChart.update("none");
 
   if (fitnessChartAvg) {
     fitnessChartAvg.data.labels.push(gen);
     // Avg-only chart: GA Avg, PSO Avg, BP Avg
-    fitnessChartAvg.data.datasets[0].data.push(gaStats.avgFitness);
-    fitnessChartAvg.data.datasets[1].data.push(psoStats.avgFitness);
-    fitnessChartAvg.data.datasets[2].data.push(bpStats.avgFitness);
+    fitnessChartAvg.data.datasets[0].data.push(
+      enableGA ? gaStats.avgFitness : null
+    );
+    fitnessChartAvg.data.datasets[1].data.push(
+      enablePSO ? psoStats.avgFitness : null
+    );
+    fitnessChartAvg.data.datasets[2].data.push(
+      enableBP ? bpStats.avgFitness : null
+    );
     fitnessChartAvg.update("none");
   }
+}
+
+/**
+ * Enable/disable team toggle inputs based on paused/running state
+ */
+function updateTeamToggleDisabledState() {
+  const disabled = !isPaused;
+  if (toggleGA && toggleGA.elt) toggleGA.elt.disabled = disabled;
+  if (togglePSO && togglePSO.elt) togglePSO.elt.disabled = disabled;
+  if (toggleBP && toggleBP.elt) toggleBP.elt.disabled = disabled;
 }
 
 // (auto food scaling removed)
