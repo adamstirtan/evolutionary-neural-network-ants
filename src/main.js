@@ -256,7 +256,11 @@ function setupUIControls() {
       const val = parseInt(foodCountSlider.value());
       foodPieces = isNaN(val) ? foodPieces : Math.max(MIN_FOOD, val);
       select("#food-count-value").html(String(foodPieces));
-      // Do not add or remove food immediately; only replenish at generation end
+      // When paused, allow adding food immediately up to the target
+      if (isPaused) {
+        const toSpawn = Math.max(0, foodPieces - foods.length);
+        if (toSpawn > 0) spawnFood(toSpawn);
+      }
     });
   }
 
@@ -405,11 +409,10 @@ function draw() {
         if (toSpawn > 0) spawnFood(toSpawn);
       }
     }
-
-    // Draw all food
-    for (let food of foods) {
-      food.draw();
-    }
+  }
+  // Draw all food (always show, even when paused)
+  for (let food of foods) {
+    food.draw();
   }
   // Draw all ants
   for (let ant of gaAnts) {

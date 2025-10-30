@@ -123,6 +123,12 @@ The yellow ants learn using gradient descent:
 - These checkboxes are only editable while the simulation is **paused**
 - Changing team selection resets the simulation to apply the change
 
+### Food Pieces (Paused Behavior)
+
+- Increasing the **Food Pieces** slider while the simulation is **paused** will immediately add food up to the new target count.
+- Decreasing the target does not remove existing food.
+- While running, food is still only replenished at generation end to keep the comparison fair.
+
 ### GA Parameters
 
 - **Mutation Rate:** Controls how much random variation is added (0.01 - 0.5)
